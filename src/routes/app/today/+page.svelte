@@ -77,27 +77,37 @@
   {/if}
 </div>
 
-{#each routines as routine (routine.id)}
-  {@const exs = data.exercisesByRoutine.get(routine.id) ?? []}
-  <div class="flex items-center justify-between mt-4 mb-2">
-    <div class="text-[11px] font-semibold text-text3 uppercase tracking-wider">{routine.name}</div>
-    <div class="text-[12px] text-text3">
-      {exs.filter((e) => data.logFor(dk, e.id)?.completed).length}/{exs.length}
+<div class="grid lg:grid-cols-[1fr_320px] gap-6">
+  <div>
+    {#each routines as routine (routine.id)}
+      {@const exs = data.exercisesByRoutine.get(routine.id) ?? []}
+      <div class="flex items-center justify-between mt-4 mb-2 first:mt-0">
+        <div class="text-[11px] font-semibold text-text3 uppercase tracking-wider">{routine.name}</div>
+        <div class="text-[12px] text-text3">
+          {exs.filter((e) => data.logFor(dk, e.id)?.completed).length}/{exs.length}
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        {#each exs as ex (ex.id)}
+          <ExerciseRow exercise={ex} date={dk} />
+        {/each}
+      </div>
+    {/each}
+
+    {#if routines.length === 0}
+      <div class="text-[12px] text-text3 text-center py-3">No scheduled routines today.</div>
+    {/if}
+  </div>
+
+  <div>
+    <div class="flex items-center justify-between mb-2 mt-4 lg:mt-0">
+      <div class="text-[11px] font-semibold text-text3 uppercase tracking-wider">Daily habits</div>
+      <div class="text-[12px] text-text3">{habitStats.done}/{habitStats.total}</div>
+    </div>
+    <div class="flex flex-col gap-1.5">
+      {#each HABITS as h (h.id)}
+        <HabitRow habit={h} date={dk} />
+      {/each}
     </div>
   </div>
-  <div class="flex flex-col gap-1.5">
-    {#each exs as ex (ex.id)}
-      <ExerciseRow exercise={ex} date={dk} />
-    {/each}
-  </div>
-{/each}
-
-<div class="flex items-center justify-between mt-5 mb-2">
-  <div class="text-[11px] font-semibold text-text3 uppercase tracking-wider">Daily habits</div>
-  <div class="text-[12px] text-text3">{habitStats.done}/{habitStats.total}</div>
-</div>
-<div class="flex flex-col gap-1.5">
-  {#each HABITS as h (h.id)}
-    <HabitRow habit={h} date={dk} />
-  {/each}
 </div>

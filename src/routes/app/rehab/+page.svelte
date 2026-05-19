@@ -34,7 +34,7 @@
   <div class="text-[10px] text-text3">Locked — research-backed</div>
 </div>
 
-<div class="flex flex-col gap-1.5 mb-5">
+<div class="grid md:grid-cols-2 lg:grid-cols-1 gap-1.5 mb-6">
   {#each presets as r (r.id)}
     {@const exs = data.exercisesByRoutine.get(r.id) ?? []}
     <div class="card-xl overflow-hidden">
@@ -64,14 +64,14 @@
 </div>
 
 {#if creating}
-  <div class="card p-3 mb-3 flex flex-col gap-2">
+  <div class="card p-3 mb-3 flex flex-col gap-2 max-w-md">
     <input class="input-base w-full" placeholder="Routine name" bind:value={newName} />
     <input class="input-base w-full" placeholder="Time estimate (optional)" bind:value={newTime} />
     <button class="btn-primary" onclick={createRehab}>Create</button>
   </div>
 {/if}
 
-<div class="flex flex-col gap-1.5">
+<div class="grid sm:grid-cols-2 gap-1.5">
   {#each userRehab as r (r.id)}
     {@const exs = data.exercisesByRoutine.get(r.id) ?? []}
     <button class="card flex items-center gap-3 px-3.5 py-3 text-left" onclick={() => (editing = r)}>
@@ -83,7 +83,7 @@
     </button>
   {/each}
   {#if userRehab.length === 0 && !creating}
-    <div class="text-[12px] text-text3 py-2 text-center">None yet.</div>
+    <div class="text-[12px] text-text3 py-2 text-center sm:col-span-2">None yet.</div>
   {/if}
 </div>
 

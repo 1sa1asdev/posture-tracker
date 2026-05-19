@@ -28,19 +28,19 @@
   </button>
 </div>
 
-<p class="text-[12px] text-text3 leading-relaxed mb-3">
-  Build your own routines. Schedule them in the calendar alongside rehab. Load/reps/RPE history feeds the stats tab.
+<p class="text-[12px] text-text3 leading-relaxed mb-3 max-w-2xl">
+  Build your own routines. Schedule them in the calendar alongside rehab. Load / reps / RPE history feeds the stats tab.
 </p>
 
 {#if creating}
-  <div class="card p-3 mb-3 flex flex-col gap-2">
+  <div class="card p-3 mb-3 flex flex-col gap-2 max-w-md">
     <input class="input-base w-full" placeholder="Routine name (e.g. Push, Pull, Legs)" bind:value={newName} />
     <input class="input-base w-full" placeholder="Time estimate (optional)" bind:value={newTime} />
     <button class="btn-primary" onclick={createGym}>Create</button>
   </div>
 {/if}
 
-<div class="flex flex-col gap-1.5">
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
   {#each userGym as r (r.id)}
     {@const exs = data.exercisesByRoutine.get(r.id) ?? []}
     <button class="card flex items-center gap-3 px-3.5 py-3 text-left" onclick={() => (editing = r)}>
@@ -52,7 +52,7 @@
     </button>
   {/each}
   {#if userGym.length === 0 && !creating}
-    <div class="text-[12px] text-text3 py-6 text-center">
+    <div class="text-[12px] text-text3 py-6 text-center sm:col-span-2 lg:col-span-3">
       <div class="text-2xl mb-2">🏋️</div>
       No gym routines yet. Tap “+ New” to start.
     </div>
