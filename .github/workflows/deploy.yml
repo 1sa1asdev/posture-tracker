@@ -27,6 +27,21 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Verify secrets are present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "::error::SUPABASE_URL secret is missing or empty"; exit 1
+          else
+            echo "SUPABASE_URL: present (length ${#SUPABASE_URL_LEN} chars)"
+          fi
+          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::SUPABASE_ANON_KEY secret is missing or empty"; exit 1
+          else
+            echo "SUPABASE_ANON_KEY: present"
+          fi
+        env:
+          SUPABASE_URL_LEN: ${{ secrets.SUPABASE_URL }}
+
       - name: Install dependencies
         run: npm ci
 
