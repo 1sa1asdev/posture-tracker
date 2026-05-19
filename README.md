@@ -1,68 +1,148 @@
 # Posture Tracker
 
-Personal posture correction tracker — elevated chest (upper crossed syndrome) + anterior pelvic tilt.
+Evidence-based posture correction + custom training tracker. Public, multi-user, end-to-end on Supabase.
 
-Built on evidence-based exercises from PubMed systematic reviews. Syncs to Supabase so data persists across devices.
+- **Rehab presets** — locked, research-backed protocols (Sessions A/B/C + Gait foundation + Achilles HSR), readable by everyone, editable by nobody
+- **Custom routines** — build your own rehab additions or gym splits
+- **Shared calendar** — recurring weekly defaults + per-date overrides, rehab and gym side by side
+- **Per-exercise logging** — sets / reps / load / RPE / notes per session, indexed for long-term progression analytics
+- **Per-day habits** — five micro-exercises tracked daily
+- **Stats** — current week %, weekly history, per-tag breakdown (UCS / APT / gait / strength), per-exercise load progression, habit streak
+- **PWA** — installable, offline shell, network-first for HTML so deploys propagate
+
+## Stack
+
+| Layer       | Choice                                |
+|-------------|---------------------------------------|
+| Framework   | SvelteKit + `adapter-static`          |
+| UI          | Svelte 5 (runes) + Tailwind CSS       |
+| Auth        | Supabase Auth (email + password, PKCE flow, email confirmation required) |
+| Data        | Supabase Postgres (normalized schema, row-level security tied to `auth.uid()`) |
+| Hosting     | GitHub Pages (static)                 |
+| Build       | Vite                                  |
+
+Anon key only in the client. Row-Level Security gatekeeps every row by user_id. No service-role credentials anywhere on the frontend.
 
 ## Setup
 
-### 1. Supabase (free, no card required)
+### 1. Supabase project
 
-Go to [supabase.com](https://supabase.com) → create a new project → open the **SQL Editor** and run:
+Create a new project at [supabase.com](https://supabase.com). Open **SQL Editor** and run, in order:
 
-```sql
-CREATE TABLE posture_data (
-  user_id    TEXT PRIMARY KEY,
-  data       JSONB NOT NULL DEFAULT '{}',
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE posture_data ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "open_access" ON posture_data
-  FOR ALL USING (true) WITH CHECK (true);
-```
+1. [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql) — schema, RLS policies, new-user trigger
+2. [`supabase/migrations/0002_seed_presets.sql`](./supabase/migrations/0002_seed_presets.sql) — preset routines (Sessions A–E) and their exercises
 
-Then go to **Project Settings → API** and copy:
-- **Project URL** — looks like `https://xxxxxxxxxxxx.supabase.co`
-- **anon / public key** — the long JWT string
+Then in **Authentication → Providers → Email**:
+- Enable **Confirm email**
+- Set the **Site URL** to your deployed URL (`https://<user>.github.io/<repo>/`)
+- Add a redirect URL: `https://<user>.github.io/<repo>/auth/callback`
 
-### 2. GitHub Secrets
+Copy from **Project Settings → API**:
+- **Project URL**
+- **anon / public key**
 
-In this repo → **Settings → Secrets and variables → Actions → New repository secret** — add these three:
+### 2. GitHub secrets
 
-| Secret name | Value |
-|---|---|
-| `SUPABASE_URL` | Your project URL |
-| `SUPABASE_KEY` | Your anon/public key |
-| `POSTURE_USER_ID` | Any identifier, e.g. `velli` — use the same on all devices |
+In repo **Settings → Secrets and variables → Actions** add:
+
+| Name                   | Value                |
+|------------------------|----------------------|
+| `SUPABASE_URL`         | the project URL      |
+| `SUPABASE_ANON_KEY`    | the anon key         |
 
 ### 3. GitHub Pages
 
-Repo → **Settings → Pages → Source → GitHub Actions**
+Repo → **Settings → Pages → Source → GitHub Actions**.
 
-Push to `main`. The workflow injects your secrets into the HTML and deploys automatically. Your app will be live at:
+Push to `main`. The workflow builds with Vite, injects the public Supabase env, and deploys to Pages.
+
+### 4. Local development
+
+```bash
+cp .env.example .env
+# fill in PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY
+npm install
+npm run dev
+```
+
+App runs at `http://localhost:5173`.
+
+## Project structure
 
 ```
-https://<your-username>.github.io/<repo-name>/
+src/
+  routes/
+    +layout.svelte              auth gate + redirect logic
+    auth/
+      signin/+page.svelte
+      signup/+page.svelte
+      check-email/+page.svelte
+      callback/+page.svelte     email-link landing
+    app/
+      +layout.svelte            tabs + header + sign-out
+      today/+page.svelte
+      calendar/+page.svelte     month grid + recurring editor
+      rehab/+page.svelte        presets (locked) + custom rehab
+      gym/+page.svelte          user-created gym routines
+      stats/+page.svelte        per-tag, history, load progression
+  lib/
+    supabase.ts                 Supabase client
+    types.ts
+    date.ts
+    data/
+      habits.ts                 5 daily habits (hardcoded constants)
+    stores/
+      session.svelte.ts         auth user + profile
+      data.svelte.ts            routines, schedule, logs, mutations
+      toast.svelte.ts
+    components/
+      ExerciseRow.svelte        check + expand + log inputs
+      HabitRow.svelte
+      RoutinePicker.svelte      multi-select used by calendar
+      RoutineEditor.svelte      create/edit/delete user routines + exercises
+      Sheet.svelte              modal/bottom-sheet
+      TagPill.svelte
+      Toast.svelte
+static/
+  manifest.json
+  icon.svg, icon-maskable.svg
+  sw.js                         network-first service worker
+supabase/migrations/
+  0001_init.sql                 schema + RLS + new-user trigger
+  0002_seed_presets.sql         preset routines + exercises
+.github/workflows/deploy.yml    build + deploy
 ```
 
-Bookmark that URL on your phone and desktop — same URL, same data everywhere.
+## Security
 
-## How it works
+- All tables enforce `auth.uid() = user_id` via Row-Level Security
+- Preset routines: readable by all authenticated users, writable by no one (no anon-key UPDATE/DELETE policy)
+- Anon key is the only credential in the client; service-role key is never exposed
+- HTTPS-enforced by GitHub Pages
+- Content-Security-Policy meta tag restricts script/connect/img sources
+- Auth flow uses PKCE; confirmation email required before first sign-in
+- Password minimum: 8 characters (enforced client-side; Supabase enforces minimum independently)
 
-- Credentials are **never stored in the repo** — only in GitHub's encrypted secrets store
-- The GitHub Actions workflow replaces the `__SUPABASE_URL__`, `__SUPABASE_KEY__`, and `__USER_ID__` placeholders at deploy time
-- Data is stored as a single JSON blob in Postgres (Supabase), keyed by your user ID
-- The app also caches to `localStorage` for offline use and pushes to cloud on reconnect
-- Auto-resets each Monday and archives the previous week's completion to your history
+## Data model
 
-## Weekly schedule
+Designed for long-term scientific tracking — every set/rep/load is its own row, indexed for per-exercise time series queries.
 
-| Day | Session |
-|---|---|
-| Monday | **A** — Upper / chest & posture |
-| Tuesday | Rest + daily habits |
-| Wednesday | **B** — Lower / pelvic tilt |
-| Thursday | Rest + daily habits |
-| Friday | **C** — Integration & mobility |
-| Saturday | **A** — Upper / chest & posture |
-| Sunday | Full rest |
+```
+profiles            (id, username)
+routines            (id, user_id|null, is_preset, preset_code, name, category, tags[], position)
+routine_exercises   (id, routine_id, position, name, dose, focus, cue, source, trackable, default_*, unit)
+schedule            (user_id, date, routine_id, position)         per-date override
+recurring           (user_id, day_of_week, routine_id, position)  weekly default
+exercise_log        (user_id, date, routine_exercise_id, completed, sets, reps, load, rpe, notes, ts)
+habits_log          (user_id, date, habit_id, completed)
+```
+
+Resolving routines for a date:
+```
+if any rows in schedule for (user_id, date) → use those
+else                                          → use recurring rows for the day_of_week
+```
+
+## License
+
+Personal project. No license granted.

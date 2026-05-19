@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0c0c0c" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self' data:; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self';" />
+  <link rel="icon" href="%sveltekit.assets%/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="%sveltekit.assets%/icon.svg" />
+  <link rel="manifest" href="%sveltekit.assets%/manifest.json" />
+  %sveltekit.head%
+</head>
+<body data-sveltekit-preload-data="hover" class="h-full bg-bg text-text font-sans antialiased overscroll-none">
+  <div style="display: contents" class="h-full">%sveltekit.body%</div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('%sveltekit.assets%/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

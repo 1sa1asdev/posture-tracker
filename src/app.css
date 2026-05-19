@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body { font-size: 16px; line-height: 1.5; }
+  body { -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; }
+  input, textarea, select {
+    color-scheme: dark;
+  }
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: theme('colors.border2'); border-radius: 2px; }
+}
+
+@layer components {
+  .card { @apply bg-surface border border-border rounded-lg; }
+  .card-xl { @apply bg-surface border border-border rounded-xl; }
+  .input-base { @apply bg-surface2 border border-border2 rounded text-text px-3 py-2 text-sm focus:outline-none focus:border-teal focus:ring-1 focus:ring-teal; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors; }
+  .btn-primary { @apply btn bg-teal text-white hover:bg-teal/90 active:bg-teal/80; }
+  .btn-ghost   { @apply btn border border-border2 text-text2 hover:text-text hover:border-text3; }
+  .btn-danger  { @apply btn border border-border2 text-text3 hover:text-red hover:border-red active:bg-red-bg; }
+  .tag         { @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wider; }
+  .tag-ucs     { @apply tag bg-teal-bg text-teal; }
+  .tag-apt     { @apply tag bg-coral-bg text-coral; }
+  .tag-gait    { @apply tag bg-amber-bg text-amber; }
+  .tag-strength{ @apply tag bg-violet-bg text-violet; }
+  .tag-mobility{ @apply tag bg-surface3 text-text2 border border-border2; }
+  .tag-both    { @apply tag bg-surface3 text-text2 border border-border2; }
+}
+
+@keyframes pulse-soft { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+.pulse-soft { animation: pulse-soft 1.2s infinite; }

@@ -15,20 +15,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject credentials from secrets
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build
+
+      - name: Add SPA fallback (copy 404.html → keep also as index.html guard)
         run: |
-          sed -i 's|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g' index.html
-          sed -i 's|__SUPABASE_KEY__|${{ secrets.SUPABASE_KEY }}|g' index.html
-          sed -i 's|__USER_ID__|${{ secrets.POSTURE_USER_ID }}|g' index.html
+          if [ -f build/404.html ] && [ ! -f build/index.html ]; then
+            cp build/404.html build/index.html
+          fi
+          touch build/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -36,8 +50,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: build
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -6,15 +6,44 @@ This file gives Claude Code full context on this project. Read it before making 
 
 ## What this is
 
-A personal posture correction web app hosted on GitHub Pages. Single HTML file, no framework, no build step beyond the GitHub Actions secret injection. Syncs to Supabase so data persists across devices.
+A public, multi-user posture correction + training tracker. Anyone can sign up (email + password,
+email confirmation required) and get a private workspace backed by Supabase.
 
-**Live URL:** `https://<username>.github.io/posture-tracker/`
+Two halves:
+- **Rehab** — research-backed locked preset protocols (Sessions A/B/C/D/E) covering UCS, APT, and
+  gait/Achilles. Users can also add their own rehab routines.
+- **Gym** — fully user-defined routines (push/pull/legs, boxing conditioning, whatever) with the
+  same logging primitives.
+
+Both halves share a calendar with recurring weekly defaults + per-date overrides.
+
+**Live URL:** `https://<user>.github.io/<repo>/`
+
+---
+
+## Stack & deployment
+
+| Layer       | Choice                                |
+|-------------|---------------------------------------|
+| Framework   | SvelteKit + `adapter-static` (SPA)    |
+| UI          | Svelte 5 (runes) + Tailwind           |
+| Auth        | Supabase Auth (email + password, PKCE)|
+| Data        | Supabase Postgres + Row-Level Security|
+| Hosting     | GitHub Pages                          |
+| Build       | Vite, GitHub Actions                  |
+
+`PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` are read from env at build time via
+`$env/static/public`. In CI they come from `secrets.SUPABASE_URL` / `secrets.SUPABASE_ANON_KEY`.
+`BASE_PATH` is set to `/<repo>` in CI so SvelteKit emits correct asset/link paths for Pages.
+
+Anon key is publishable. Row-Level Security is what protects user data — it must remain enabled
+on every table and gate every row by `auth.uid() = user_id`.
 
 ---
 
 ## The person using this (Velli)
 
-- Programmer, Stockholm. Stack: Next.js App Router, TypeScript, Drizzle ORM, Tailwind, server actions.
+- Programmer, Stockholm. Daily stack: Next.js App Router, TypeScript, Drizzle ORM, Tailwind, server actions.
 - Trains boxing + gym. Strong performance/optimization mindset — no hedging, confident advice.
 - Built this tracker to address three linked physical issues discovered through research:
 
@@ -24,162 +53,104 @@ A personal posture correction web app hosted on GitHub Pages. Single HTML file, 
 
 ### 1. Heel striking + poor load distribution
 - Quad dominant gait, weak posterior chain, stiff ankles, poor proprioception
-- Research: Loughborough University 2025 (JSR) — visual biofeedback-guided gait modification significantly reduces heel forces and increases forefoot load
+- Loughborough University 2025 (JSR): visual biofeedback-guided gait modification significantly
+  reduces heel forces and increases forefoot load.
 
 ### 2. Hip sway (Trendelenburg pattern)
-- Root cause: glute medius weakness → pelvic drop on stance side → lateral trunk lean to compensate
-- EMG research: Side plank abduction = 103% MVIC (highest), single-leg squat = 82% MVIC, lateral step-up = 79–113% MVIC (PMC3201064, PMC6350668)
-- The full chain: weak glute med → hip sway → asymmetric ankle/Achilles load → compensatory heel strike → Achilles never loads elastically → tendon loses stiffness
+- Glute medius weakness → pelvic drop → lateral trunk lean → asymmetric Achilles load
+- EMG: side plank abduction = 103% MVIC, single-leg squat = 82%, lateral step-up = 79–113%
+  (PMC3201064, PMC6350668).
 
 ### 3. Achilles load tolerance
-- Tendon not being loaded through full range → loses stiffness, becomes reactive
-- Gold standard: Heavy Slow Resistance (HSR) protocol — RCT (Beyer et al., AJSM 2015, PMC) showed HSR = eccentric training for outcomes, higher patient satisfaction
-- Protocol: 3×/week, 12 weeks, straight-leg + bent-knee variants, progressive overload
+- Tendon not loaded through full range → loses stiffness
+- Gold standard: Heavy Slow Resistance (HSR), Beyer et al., AJSM 2015 — HSR = eccentric for
+  outcomes, higher patient satisfaction. 3×/week × 12 weeks, straight + bent-knee variants.
 
 ### 4. Elevated chest (Upper Crossed Syndrome / UCS)
 - Tight/overactive: pec major, pec minor, upper trap, levator scapulae, SCM
 - Weak/inhibited: serratus anterior, lower trap, middle trap, deep neck flexors
-- Key finding: upper chest breathing fires scalenes + upper trap thousands of times/hour, reinforcing UCS on every breath (RCT PMC12606979)
-- Research base: PMC10583860 (2023 systematic review), PMC10454745 (2023 narrative review)
+- Upper-chest breathing fires scalenes + upper trap thousands of times/hour, reinforcing UCS
+  on every breath (RCT PMC12606979).
+- Research base: PMC10583860 (2023 systematic review), PMC10454745 (2023 narrative review).
 
 ### 5. Anterior pelvic tilt (APT)
 - Tight/overactive: iliopsoas, rectus femoris, TFL, lumbar erectors
-- Weak/inhibited: glute max/med, deep core (transversus abdominis), hamstrings
-- Key finding: combined rectus abdominis + oblique externus + glute max activation is the primary motor strategy for pelvic retroversion (EMG study PMC10885056, 2024)
-- RCT: iliopsoas/RF/TFL stretching produced ~3.4° APT reduction (González-de-la-Flor et al., 2024)
+- Weak/inhibited: glute max/med, deep core (TVA), hamstrings
+- 2024 EMG (PMC10885056): combined rectus abdominis + oblique externus + glute max is the
+  primary motor strategy for pelvic retroversion.
+- RCT González-de-la-Flor et al., 2024: iliopsoas/RF/TFL stretching produced ~3.4° APT reduction.
 
 ---
 
-## The exercise protocol
+## Preset routines (locked, server-side)
 
-The app tracks this exact weekly schedule:
+Stored in `routines` with `is_preset = true` and `preset_code` set. Seeded by
+`supabase/migrations/0002_seed_presets.sql` — re-runnable, idempotent. RLS prohibits writes from
+the client.
 
-### Session A — Upper / chest & posture (Mon + Sat, 12–15 min)
-1. **Wall angel** — 3×10 slow. Back flat on wall, slide arms up while keeping elbows+wrists in contact. Thoracic extension + lower trap.
-2. **Serratus wall slide** — 3×12. Hands on wall, protract shoulder blades without bending elbows. Serratus anterior isolation.
-3. **Y–T–W prone** — 3×10 each. Face down, hit Y/T/W positions slowly. Lower + middle trap.
-4. **Chin tuck hold** — 3×8, 5s hold. Supine, chin straight back, head 2cm off floor. Deep neck flexors.
-5. **Doorframe pec stretch** — 2×45s each side. Elbow 90°, feel it in pec minor not shoulder.
+| Code      | Name                          | Focus  |
+|-----------|-------------------------------|--------|
+| `rehab_a` | Upper — chest & posture       | UCS    |
+| `rehab_b` | Lower — pelvic tilt           | APT    |
+| `rehab_c` | Integration & mobility        | both   |
+| `rehab_d` | Gait foundation               | gait   |
+| `rehab_e` | Achilles HSR & reactive       | gait   |
 
-### Session B — Lower / pelvic tilt (Wed, 12–15 min)
-1. **90/90 hip flexor stretch** — 3×60s each side. Kneeling lunge. Squeeze back glute FIRST to posteriorly tilt pelvis, then lean forward. Without the glute squeeze it's just lumbar compression.
-2. **Dead bug** — 3×8 each side, 3s lower. Lower back pressed INTO floor throughout. Gold standard deep core for APT.
-3. **Glute bridge + posterior tilt** — 3×12, 2s hold. At top, tuck pelvis (flatten back) before lowering. The tilt is the corrective movement, not the height.
-4. **Prone RF stretch** — 2×45s each side. Face down, foot to glute + squeeze opposite glute. Hits both hip flexor and quad portions of rectus femoris.
-5. **Bird dog** — 3×8 each side, 4s hold. Hips LEVEL throughout. Pelvis stability, not limb height.
+Each exercise carries: `name`, `dose`, `focus`, `cue` (how to do it), `source` (research citation),
+`trackable` (whether to show load/reps inputs), default sets/reps/load, and `unit`.
 
-### Session C — Integration & mobility (Fri, 10–12 min)
-1. **Cat–camel** — 2×10 slow cycles. Segmental, one vertebra at a time from sacrum upward.
-2. **Thoracic extension on roller** — 2×8 segments, 30s each. Mid-thoracic only (T4–T8), NOT lumbar.
-3. **Posterior pelvic tilt hold** — 5×10s standing against wall. Abs + glutes simultaneously flatten lower back against wall.
-4. **Wall angel + belly breath** — 3×5 breaths. Hold wall angel position, breathe into belly and lateral ribs only. No upper chest movement.
-5. **Prone cobra** — 3×8, 3s hold. Blades DOWN and back, not up toward ears. Thumbs to ceiling.
-
-### Daily habits (every day, throughout the day)
-1. **Chin tuck** — 5 reps × 3s every 30 min seated
-2. **Shoulder blade set** — 10 reps × 5s, blades together AND down
-3. **Seated posterior tilt** — 10 reps × 5s every time you sit down
-4. **Standing glute squeeze** — 10s × 5 per hour standing
-5. **Diaphragmatic breathing reset** — 5 breaths any time, belly only
+Habits live in code: [src/lib/data/habits.ts](src/lib/data/habits.ts). Five stable ids (`chin_tuck`,
+`blade_set`, `seated_ppt`, `standing_glute`, `belly_breath`). Tracked per-day in `habits_log`.
 
 ---
 
-## App architecture
+## Data flow
 
-```
-posture-tracker/
-├── index.html                    # Entire app — HTML + CSS + JS, no dependencies
-├── .github/
-│   └── workflows/
-│       └── deploy.yml            # Injects secrets, deploys to GitHub Pages
-└── README.md
-```
+On sign-in, [src/lib/stores/data.svelte.ts](src/lib/stores/data.svelte.ts) `loadAll()` pulls every
+table the user can see in parallel into `$state` runes. All UI reads off those reactive arrays.
+Mutations call store methods, which optimistically update local state and then upsert to Supabase.
+`syncState` ('idle' | 'pending' | 'ok' | 'error') is reflected by the header dot.
 
-### Credential injection (important)
-`index.html` contains three placeholder strings that GitHub Actions replaces at deploy time:
-- `__SUPABASE_URL__` → `secrets.SUPABASE_URL`
-- `__SUPABASE_KEY__` → `secrets.SUPABASE_KEY`
-- `__USER_ID__`      → `secrets.POSTURE_USER_ID`
+Resolving routines for a date:
+1. If `schedule` has any rows for `(user_id, date)`, use those.
+2. Otherwise, fall back to `recurring` rows for that `day_of_week`.
 
-**Never hardcode real credentials in index.html.** They only exist in GitHub Secrets and the deployed file (which is never committed).
-
-### Data layer
-- **Supabase** (Postgres, free tier) — single table `posture_data`, one row per user_id, data stored as JSONB
-- **localStorage** — offline cache, syncs to Supabase within 600ms of any change
-- **State shape:**
-  ```js
-  {
-    checked: { 'Mon_0': true, 'habit_2': false, ... },
-    weekKey: '2026-05-18',   // ISO Monday date of current week
-    history: [{ week: '2026-05-11', pct: 85 }, ...],  // last 10 weeks
-    streak: 3                // consecutive weeks >= 70%
-  }
-  ```
-
-### Week rollover
-On load, the app compares the current week's Monday date to `data.weekKey`. If different (new week), it archives the previous week to `history`, increments `streak` if pct ≥ 70, resets `checked`, and updates `weekKey`.
-
-### Supabase table (must be created manually by user)
-```sql
-CREATE TABLE posture_data (
-  user_id    TEXT PRIMARY KEY,
-  data       JSONB NOT NULL DEFAULT '{}',
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE posture_data ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "open_access" ON posture_data
-  FOR ALL USING (true) WITH CHECK (true);
-```
+New users get a default recurring schedule (Mon/Wed/Fri/Sat = preset A/B/C/A) seeded by the
+`handle_new_user` trigger.
 
 ---
 
-## Design system
+## Routing
 
-Dark theme. No external dependencies.
+- `/` → auth-aware redirect (`/app/today` if signed in, otherwise `/auth/signin`)
+- `/auth/{signin,signup,check-email,callback}` — public
+- `/app/{today,calendar,rehab,gym,stats}` — auth-required (gated client-side)
 
-```css
---bg: #0c0c0c          /* page background */
---surface: #161616     /* card background */
---teal: #1D9E75        /* UCS / chest exercises, sync OK, progress */
---coral: #D85A30       /* APT / pelvis exercises */
---amber: #BA7517       /* streak, Session C, partial completion */
---red: #e24b4a         /* errors */
-```
-
-Exercises tagged: `ucs` (chest/posture) → teal, `apt` (pelvis) → coral, `both` → neutral.
+This is a pure SPA (`ssr = false`, `prerender = false`, `fallback: '404.html'`). GitHub Pages serves
+`404.html` for any unknown path; the client router takes over from there. `BASE_PATH` is critical —
+without it on Pages, asset URLs break.
 
 ---
 
-## What could be improved / extended
+## Security model
 
-- **Notifications** — Web Push API or a simple reminder mechanism to prompt daily habits
-- **Notes per session** — free text field to log how each session felt
-- **Exercise substitutions** — swap exercises for equipment-free alternatives
-- **Gait tracking tab** — separate section for the heel strike / Achilles / hip sway protocol from earlier in the conversation (those exercises are NOT currently in the app — only the UCS + APT ones are tracked)
-- **Progressive overload log** — for the Achilles HSR protocol specifically, tracking load week by week
-- **Dark/light toggle** — currently dark only
-- **PWA manifest** — add `manifest.json` and service worker for proper home screen install
+- Every table has RLS enabled with `auth.uid() = user_id` policies (presets readable globally via
+  `is_preset = true` policy clause)
+- Anon key is the only credential in the client
+- PKCE flow + email confirmation required on signup
+- Username validated server-side via a regex check constraint (`^[a-z0-9_]+$`, 2–32 chars)
+- CSP meta in `src/app.html` restricts script/connect/img sources
+
+If you add a table, you **must** add RLS policies in the same migration. The schema's invariant is
+"no row is accessible without an authenticated user owning it (or it being marked `is_preset`)."
 
 ---
 
-## The broader exercise context (not yet in app)
+## Improvements / extensions (not yet built)
 
-The conversation also covered a full evidence-based protocol for the gait issues. If adding a second tracker or tab:
-
-**Gait / lower body protocol:**
-- Copenhagen plank — 3×20–30s (adductor + groin stabilization)
-- Clamshells with band — 3×15, 3s up/down (slow = glute med, fast = TFL)
-- Short foot exercise — 2×60s (intrinsic foot muscles, arch control)
-- Single-leg RDL with pause — 4×8 each
-- Lateral band walk — 3×15 each direction
-- Step-down eccentric — 4×10 each (most direct heel strike transfer)
-- Tibialis anterior raises — 3×20 (heels on plate, lift forefoot)
-- Alfredson eccentric heel drop — 3×15 each, bilateral up/unilateral down on step edge
-- HSR calf raises — 4×6, 3s up/3s down, both straight-leg and bent-knee variants
-- Pogo jumps (week 5+ only) — 3×10s, stiff ankles, reactive
-- Single-leg ankle hops — once pogos are easy
-
-**Gait retraining:**
-- Metronome walking at 170–180 bpm
-- Barefoot walking on soft surfaces daily (10 min)
-- Forward lean from ankle drill ("fall" from ankle, not waist)
+- **Web Push notifications** for daily habits (needs VAPID + push server — different architecture)
+- **Exercise substitution suggestions** based on equipment available
+- **Body measurement tracking** (waist, posture photo angles, etc.) — would need a new table
+- **Export** (CSV / JSON) of exercise_log for external analysis
+- **Public progress sharing** (read-only username pages) — opt-in flag on profile
+- **Social / friend system** — would need explicit relationship table + new RLS policies
