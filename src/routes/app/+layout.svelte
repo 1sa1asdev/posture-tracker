@@ -12,6 +12,7 @@
     { href: '/app/calendar', label: 'Calendar', short: 'Cal',      icon: '◰' },
     { href: '/app/rehab',    label: 'Rehab',    short: 'Rehab',    icon: '✚' },
     { href: '/app/gym',      label: 'Gym',      short: 'Gym',      icon: '◆' },
+    { href: '/app/diet',     label: 'Diet',     short: 'Diet',     icon: '◉' },
     { href: '/app/stats',    label: 'Stats',    short: 'Stats',    icon: '◢' }
   ];
 
@@ -125,11 +126,11 @@
   </header>
 
   <!-- ── Mobile tab bar (< md) ──────────────────────────────────────────── -->
-  <nav class="md:hidden grid grid-cols-5 border-b border-border flex-shrink-0 max-w-[520px] mx-auto w-full">
+  <nav class="md:hidden grid grid-cols-6 border-b border-border flex-shrink-0 max-w-[520px] mx-auto w-full">
     {#each tabs as t (t.href)}
       {@const active = path === t.href || path.startsWith(t.href + '/')}
       <a href="{base}{t.href}"
-         class="text-center py-3 text-[12px] font-medium tracking-wider uppercase border-b-2
+         class="text-center py-3 text-[11px] font-medium tracking-wider uppercase border-b-2
                 {active ? 'text-teal border-teal' : 'text-text3 border-transparent'}">
         {t.short}
       </a>

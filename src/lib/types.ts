@@ -83,3 +83,60 @@ export interface Habit {
   cue: string;
   source?: string;
 }
+
+// ─── diet & supplements ──────────────────────────────────────────────────────
+export type SupplementUnit = 'pill' | 'capsule' | 'scoop' | 'tablet' | 'gummy' | 'ml' | 'g';
+
+export interface Meal {
+  id: string;
+  user_id: string;
+  name: string;
+  calories: number | null;
+  protein: number | null;
+  position: number;
+}
+
+export interface Supplement {
+  id: string;
+  user_id: string;
+  name: string;
+  unit: SupplementUnit;
+  per_unit_protein: number;
+  per_unit_calories: number;
+  per_unit_amount: number | null;
+  per_unit_label: string | null;
+  daily_target: number;
+  position: number;
+}
+
+export interface DietSettings {
+  user_id: string;
+  calorie_target: number | null;
+  protein_target: number | null;
+  water_target_ml: number;
+}
+
+export interface MealLog {
+  id: string;
+  user_id: string;
+  date: string;
+  meal_id: string;
+  completed: boolean;
+  calories: number | null;
+  protein: number | null;
+}
+
+export interface SupplementLog {
+  id: string;
+  user_id: string;
+  date: string;
+  supplement_id: string;
+  amount: number;
+}
+
+export interface WaterLog {
+  id: string;
+  user_id: string;
+  date: string;
+  amount_ml: number;
+}
